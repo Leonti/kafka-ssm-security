@@ -1,4 +1,4 @@
-# kafka-ssm-security [![Build Status](https://travis-ci.org/myob-technology/kafka-ssm-security.svg?branch=master)](https://travis-ci.org/myob-technology/kafka-ssm-security)
+# kafka-ssm-security [![Build Status](https://travis-ci.org/MYOB-Technology/kafka-ssm-security.svg?branch=master)](https://travis-ci.org/MYOB-Technology/kafka-ssm-security)
 
 ![Diagram](resources/kss.png)
 
