@@ -1,0 +1,55 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Security setup for Kafka cluster.
+
+Resources:
+
+  # The _key_ of a Topic entry is the topic name.
+  #
+  # The _value_ of a Topic entry is the configuration info.
+  #
+  # The format for the value of a Topic is:
+  #   ReplicationFactor,Partitions,RetentionHs
+  #
+  TestTopic:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: /kafka-security/example-cluster/topics/test-topic
+      Value: 1,10,24
+  TestTopic2:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: /kafka-security/example-cluster/topics/test-topic2
+      Value: 1,10,24
+  TestTopic3:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: /kafka-security/topics/test-topic3
+      Value: 1,10,24
+
+  # The _key_ of a User entry is their username. Passwords are added to a
+  # different entry which can't be set in CloudFormation.
+  #
+  # The _value_ of a User entry is their ACL information, one ACL per line.
+  #
+  # The format we expect for the ACL entry lines is:
+  #   ResourceType,PatternType,ResourceName,Operation,PermissionType,Host
+  #
+  TestUserAcl:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /kafka-security/example-cluster/users/test-user
+      Type: String
+      Value: |
+        Topic,LITERAL,test-topic,Read,Allow,*,
+        Group,LITERAL,test-partition,Write,Allow,*
+  AnotherTestUserAcl:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /kafka-security/example-cluster/users/another-test-user
+      Type: String
+      Value: |
+        Topic,LITERAL,test-topic2,Read,Allow,*

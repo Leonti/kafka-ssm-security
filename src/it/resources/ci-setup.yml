@@ -1,0 +1,29 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Security setup for Kafka cluster.
+
+Resources:
+
+  # ReplicationFactor,Partitions,RetentionHs
+  TestTopic:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: /kafka-security/ci-cluster/topics/test-topic
+      Value: 1,10,24
+  TestTopic2:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: /kafka-security/ci-cluster/topics/test-topic2
+      Value: 2,11,25
+
+  # ResourceType,PatternType,ResourceName,Operation,PermissionType,Host
+  TestUserAcl:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /kafka-security/ci-cluster/users/test-user
+      Type: String
+      Value: |
+        Topic,LITERAL,test-topic,Read,Allow,*
+        Group,LITERAL,test-partition,Write,Allow,*

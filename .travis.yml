@@ -1,0 +1,13 @@
+sudo: false
+language: scala
+
+services:
+- docker
+
+jobs:
+  include:
+  - stage: "Tests"
+    name: "Unit Tests"
+    script: docker-compose run unit-tests && docker-compose down
+  - name: "Integration Tests"
+    script: docker-compose run integration-tests-kafka-only && docker-compose down
