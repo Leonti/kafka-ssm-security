@@ -44,11 +44,12 @@ class CloudFormationDump[F[_]: Monad](
   }
 
 
-  private def topicToCf(topic: Topic): String = s"""  ${topic.name}:
-                                                   |    Type: AWS::SSM::Parameter
-                                                   |    Properties:
-                                                   |      Type: String
-                                                   |      Name: /kafka-security/$clusterName/topics/${topic.name}
-                                                   |      Value: ${topic.replicationFactor.value},${topic.partitionCount.value},${topic.retentionHs.value}""".stripMargin
+  private def topicToCf(topic: Topic): String =
+    s"""  ${topic.name}:
+     |    Type: AWS::SSM::Parameter
+     |    Properties:
+     |      Type: String
+     |      Name: /kafka-security/$clusterName/topics/${topic.name}
+     |      Value: ${topic.replicationFactor.value},${topic.partitionCount.value},${topic.retentionHs.value}""".stripMargin
 
 }
