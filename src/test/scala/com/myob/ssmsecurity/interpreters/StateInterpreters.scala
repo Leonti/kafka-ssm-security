@@ -3,7 +3,7 @@ package com.myob.ssmsecurity.interpreters
 import cats.data.State
 import cats.implicits._
 import com.myob.ssmsecurity.algebras.{KafkaAclsAlg, KafkaTopicsAlg, KafkaUsersAlg, LogAlg}
-import com.myob.ssmsecurity.models.{StoredUser, Topic, User, UserName}
+import com.myob.ssmsecurity.models._
 import kafka.security.auth.{Acl, Resource}
 
 object StateInterpreters {
@@ -26,7 +26,8 @@ object StateInterpreters {
       (st.copy(topics = topic :: st.topics), ())
     }
 
-    override def getTopicNames: TestProgram[Set[String]] = State.pure(topicNames)
+    override def getTopics: TestProgram[Set[Topic]] = State.pure(topicNames
+      .map(name => Topic(name, ReplicationFactor(1), PartitionCount(6), RetentionHs(24))))
   }
 
   class LogAlgState extends LogAlg[TestProgram] {

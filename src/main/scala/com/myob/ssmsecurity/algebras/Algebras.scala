@@ -16,7 +16,7 @@ trait KafkaAclsAlg[F[_]] {
 
 trait KafkaTopicsAlg[F[_]] {
   def createTopic(topic: Topic): F[Unit]
-  def getTopicNames: F[Set[String]]
+  def getTopics: F[Set[Topic]]
 }
 
 trait KafkaUsersAlg[F[_]] {
