@@ -20,7 +20,8 @@ scalacOptions ++= Seq(
 libraryDependencies ++= Seq(
   "org.typelevel" %% "cats-core" % "1.4.0",
   "org.typelevel" %% "cats-effect" % "1.0.0",
-  "com.amazonaws" % "aws-java-sdk-ssm" % "1.11.412",
+  "com.amazonaws" % "aws-java-sdk-ssm" % "1.11.461",
+  "com.amazonaws" % "aws-java-sdk-cloudwatch" % "1.11.461",
   "org.apache.kafka" %% "kafka" % "2.0.0",
   "org.scalatest" %% "scalatest" % "3.0.4" % "it,test"
 )

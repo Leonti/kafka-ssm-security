@@ -4,18 +4,22 @@ import java.util.Base64
 
 import cats.Monad
 import cats.implicits._
-import com.myob.ssmsecurity.algebras.{KafkaUsersAlg, LogAlg, SsmAlg}
-import com.myob.ssmsecurity.models.Password
+import com.myob.ssmsecurity.algebras.{KafkaUsersAlg, LogAlg, MetricsAlg, SsmAlg}
+import com.myob.ssmsecurity.models._
 import org.apache.kafka.common.security.scram.ScramCredential
 import org.apache.kafka.common.security.scram.internals.{ScramFormatter, ScramMechanism}
 
-class UserSync[F[_] : Monad](clusterName: String, kafkaUsers: KafkaUsersAlg[F], ssm: SsmAlg[F], log: LogAlg[F]) {
+class UserSync[F[_] : Monad](clusterName: String,
+                             kafkaUsers: KafkaUsersAlg[F],
+                             ssm: SsmAlg[F],
+                             metrics: MetricsAlg[F],
+                             log: LogAlg[F]) {
 
   val sync: F[Unit] = for {
     ssmResult <- ssmConfig.getUsers
     (ssmErrors, ssmUsers) = ssmResult
     _ <- ssmErrors.map(_.value).traverse(log.error)
-
+    _ <- metrics.sendMetric(UsersFailed(ssmErrors.length))
     kafkaStoredUsers <- kafkaUsers.getStoredUsers
     usersToAdd = ssmUsers.filterNot(u => kafkaStoredUsers.map(_.name).contains(u.name))
     userNamesToRemove = kafkaStoredUsers.map(_.name).diff(ssmUsers.map(_.name))
@@ -32,16 +36,19 @@ class UserSync[F[_] : Monad](clusterName: String, kafkaUsers: KafkaUsersAlg[F], 
       _ <- log.info(s"Adding user: ${user.name}")
       _ <- kafkaUsers.createUser(user)
     } yield ())
+    _ <- metrics.sendMetric(UsersCreated(usersToAdd.size))
 
     _ <- usersToUpdate.toList.traverse(user => for {
       _ <- log.info(s"Updating user: ${user.name}")
       _ <- kafkaUsers.updateUser(user)
     } yield ())
+    _ <- metrics.sendMetric(UsersUpdated(usersToUpdate.size))
 
     _ <- userNamesToRemove.toList.traverse(name => for {
       _ <- log.info(s"Removing user: $name")
       _ <- kafkaUsers.removeUser(name)
     } yield ())
+    _ <- metrics.sendMetric(UsersRemoved(userNamesToRemove.size))
   } yield ()
 
   private def passwordIsUpToDate(password: Password, credential: ScramCredential): Boolean = {

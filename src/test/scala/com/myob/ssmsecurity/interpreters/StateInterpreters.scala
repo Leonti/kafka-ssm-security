@@ -2,8 +2,8 @@ package com.myob.ssmsecurity.interpreters
 
 import cats.data.State
 import cats.implicits._
-import com.myob.ssmsecurity.algebras.{KafkaAclsAlg, KafkaTopicsAlg, KafkaUsersAlg, LogAlg}
-import com.myob.ssmsecurity.models.{StoredUser, Topic, User, UserName}
+import com.myob.ssmsecurity.algebras._
+import com.myob.ssmsecurity.models._
 import kafka.security.auth.{Acl, Resource}
 
 object StateInterpreters {
@@ -15,6 +15,7 @@ object StateInterpreters {
                           topics: List[Topic] = List(),
                           infos: List[String] = List(),
                           errors: List[String] = List(),
+                          metricsSent: List[Metric] = List(),
                           aclsAdded: Map[Resource, Set[Acl]] = Map(),
                           aclsRemoved: Map[Resource, Set[Acl]] = Map())
 
@@ -35,6 +36,12 @@ object StateInterpreters {
     }
     override def error(message: String): TestProgram[Unit] = State { st =>
       (st.copy(errors = message :: st.errors), ())
+    }
+  }
+
+  class MetricsAlgState extends MetricsAlg[TestProgram] {
+    override def sendMetric(metric: Metric): TestProgram[Unit] = State { st =>
+      (st.copy(metricsSent = metric :: st.metricsSent), ())
     }
   }
 

@@ -16,11 +16,12 @@ class TopicSyncSpec extends FlatSpec with Matchers {
       SsmParameter("/kafka-security/ci-cluster/topics/test-topic", "1,10,24")
     )
 
-    val topicSync = new TopicSync("ci-cluster", kafkaTopics, ssm, new LogAlgState())
+    val topicSync = new TopicSync("ci-cluster", kafkaTopics, ssm, new MetricsAlgState(), new LogAlgState())
 
     val (state, _) = topicSync.sync.run(SystemState()).value
 
     state.topics shouldBe List(Topic("test-topic", ReplicationFactor(1), PartitionCount(10), RetentionHs(24)))
+    state.metricsSent.toSet shouldBe Set(TopicsCreated(1), TopicsFailed(0))
   }
 
   it should "not create a topic if already exists" in {
@@ -30,11 +31,12 @@ class TopicSyncSpec extends FlatSpec with Matchers {
       SsmParameter("/kafka-security/ci-cluster/topics/test-topic", "1,10,24")
     )
 
-    val topicSync = new TopicSync("ci-cluster", kafkaTopics, ssm, new LogAlgState())
+    val topicSync = new TopicSync("ci-cluster", kafkaTopics, ssm, new MetricsAlgState(), new LogAlgState())
 
     val (state, _) = topicSync.sync.run(SystemState()).value
 
     state.topics shouldBe List()
+    state.metricsSent.toSet shouldBe Set(TopicsCreated(0), TopicsFailed(0))
   }
 
   "sync" should "log errors for failed topics and continue with the parsed ones" in {
@@ -45,11 +47,12 @@ class TopicSyncSpec extends FlatSpec with Matchers {
       SsmParameter("/kafka-security/ci-cluster/topics/test-topic", "1,10,24")
     )
 
-    val topicSync = new TopicSync("ci-cluster", kafkaTopics, ssm, new LogAlgState())
+    val topicSync = new TopicSync("ci-cluster", kafkaTopics, ssm, new MetricsAlgState(), new LogAlgState())
 
     val (state, _) = topicSync.sync.run(SystemState()).value
 
     state.topics shouldBe List(Topic("test-topic", ReplicationFactor(1), PartitionCount(10), RetentionHs(24)))
     state.errors.length shouldBe 1
+    state.metricsSent.toSet shouldBe Set(TopicsCreated(1), TopicsFailed(1))
   }
 }
