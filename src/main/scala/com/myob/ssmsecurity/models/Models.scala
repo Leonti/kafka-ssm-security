@@ -33,3 +33,4 @@ case class AclsRemoved(value: Int, name: String = "acls_removed") extends Metric
 case class AclsFailed(value: Int, name: String = "acls_failed") extends Metric
 case class TopicsCreated(value: Int, name: String = "topics_created") extends Metric
 case class TopicsFailed(value: Int, name: String = "topics_failed") extends Metric
+case class TopicsOutOfSync(value: Int, name: String = "topics_out_of_sync") extends Metric
