@@ -30,3 +30,7 @@ trait LogAlg[F[_]] {
   def info(message: String): F[Unit]
   def error(message: String): F[Unit]
 }
+
+trait MetricsAlg[F[_]] {
+  def sendMetric(metric: Metric): F[Unit]
+}

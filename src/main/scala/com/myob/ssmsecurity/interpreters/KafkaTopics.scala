@@ -12,8 +12,11 @@ class KafkaTopics(zkClient: KafkaZkClient) extends KafkaTopicsAlg[IO] {
   val adminZkClient = new AdminZkClient(zkClient)
 
   override def createTopic(topic: Topic): IO[Unit] = IO {
-    val topicProperties = new Properties()
-    topicProperties.setProperty("retention.ms", topic.retentionHs.value.hours.toMillis.toString)
+    val topicProperties = new Properties
+    topic.retentionHs.foreach(retentionHs =>
+      topicProperties.setProperty("retention.ms", retentionHs.value.hours.toMillis.toString)
+    )
+
     adminZkClient.createTopic(topic.name, topic.partitionCount.value, topic.replicationFactor.value, topicProperties)
   }
 
@@ -22,8 +25,9 @@ class KafkaTopics(zkClient: KafkaZkClient) extends KafkaTopicsAlg[IO] {
     val assignments = zkClient.getPartitionAssignmentForTopics(configs.keys.toSet)
 
     configs.toList
-      .flatMap({ case (topic, config@_) => assignments.get(topic).map(a => {
-        Topic(topic, ReplicationFactor(a.head._2.size), PartitionCount(a.size), RetentionHs(1))
+      .flatMap({ case (topic, config) => assignments.get(topic).map(a => {
+        val retentionHs = Option(config.getProperty("retention.ms")).map(_.toLong.millis.toHours).map(RetentionHs.apply)
+        Topic(topic, ReplicationFactor(a.head._2.size), PartitionCount(a.size), retentionHs)
       })
     }).toSet
   }

@@ -2,10 +2,15 @@ package com.myob.ssmsecurity
 
 import cats.Monad
 import cats.implicits._
-import com.myob.ssmsecurity.algebras.{KafkaAclsAlg, LogAlg, SsmAlg}
+import com.myob.ssmsecurity.algebras.{KafkaAclsAlg, LogAlg, MetricsAlg, SsmAlg}
+import com.myob.ssmsecurity.models.{AclsCreated, AclsFailed, AclsRemoved}
 import kafka.security.auth.{Acl, Resource}
 
-class AclSync[F[_]: Monad](clusterName: String, kafkaAcls: KafkaAclsAlg[F], ssm: SsmAlg[F], log: LogAlg[F]) {
+class AclSync[F[_]: Monad](clusterName: String,
+                           kafkaAcls: KafkaAclsAlg[F],
+                           ssm: SsmAlg[F],
+                           metrics: MetricsAlg[F],
+                           log: LogAlg[F]) {
 
   private def ssmConfig: SsmConfig[F] = new SsmConfig[F](clusterName, ssm)
 
@@ -26,7 +31,12 @@ class AclSync[F[_]: Monad](clusterName: String, kafkaAcls: KafkaAclsAlg[F], ssm:
     (ssmErrors, fromSsm) = ssmAcls
 
     _ <- ssmErrors.map(_.value).traverse(log.error)
-    _ <- if (fromSsm == fromKafka) log.info("No ACLs to update") else for {
+    _ <- metrics.sendMetric(AclsFailed(ssmErrors.length))
+    _ <- if (fromSsm == fromKafka) for {
+      _ <- log.info("No ACLs to update")
+      _ <- metrics.sendMetric(AclsCreated(0))
+      _ <- metrics.sendMetric(AclsRemoved(0))
+    } yield () else for {
       _ <- log.info("Updating")
       added = fromSsm -- fromKafka
       removed = fromKafka -- fromSsm
@@ -34,6 +44,8 @@ class AclSync[F[_]: Monad](clusterName: String, kafkaAcls: KafkaAclsAlg[F], ssm:
       _ <- log.info(s"To remove: $removed")
       _ <- kafkaAcls.addAcls(groupAcls(added))
       _ <- kafkaAcls.removeAcls(groupAcls(removed))
+      _ <- metrics.sendMetric(AclsCreated(added.size))
+      _ <- metrics.sendMetric(AclsRemoved(removed.size))
       } yield ()
     } yield ()
 }

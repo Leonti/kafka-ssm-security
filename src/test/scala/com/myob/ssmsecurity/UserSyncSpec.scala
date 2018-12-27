@@ -22,11 +22,12 @@ class UserSyncSpec extends FlatSpec with Matchers {
       SsmParameter("/kafka-security/ci-cluster/user-passwords/test-user", "password")
     )
 
-    val userSync = new UserSync("ci-cluster", kafkaUsers, ssm, new LogAlgState())
+    val userSync = new UserSync("ci-cluster", kafkaUsers, ssm, new MetricsAlgState(), new LogAlgState())
 
     val (state, _) = userSync.sync.run(SystemState()).value
 
     state.usersAdded shouldBe List(User(UserName("test-user"), Password("password")))
+    state.metricsSent.toSet shouldBe Set(UsersCreated(1), UsersUpdated(0), UsersRemoved(0), UsersFailed(0))
   }
 
   it should "delete a user if it doesn't exist" in {
@@ -34,11 +35,12 @@ class UserSyncSpec extends FlatSpec with Matchers {
     val kafkaUsers = new KafkaUsersAlgState(Set(storedUser(userName, "password")))
     val ssm = new SsmAlgTest[TestProgram]()
 
-    val userSync = new UserSync("ci-cluster", kafkaUsers, ssm, new LogAlgState())
+    val userSync = new UserSync("ci-cluster", kafkaUsers, ssm, new MetricsAlgState(), new LogAlgState())
 
     val (state, _) = userSync.sync.run(SystemState()).value
 
     state.userNamesRemoved shouldBe List(userName)
+    state.metricsSent.toSet shouldBe Set(UsersCreated(0), UsersUpdated(0), UsersRemoved(1), UsersFailed(0))
   }
 
   it should "update user password if outdated" in {
@@ -49,11 +51,12 @@ class UserSyncSpec extends FlatSpec with Matchers {
       SsmParameter("/kafka-security/ci-cluster/user-passwords/shouldBeUpdated", "password")
     )
 
-    val userSync = new UserSync("ci-cluster", kafkaUsers, ssm, new LogAlgState())
+    val userSync = new UserSync("ci-cluster", kafkaUsers, ssm, new MetricsAlgState(), new LogAlgState())
 
     val (state, _) = userSync.sync.run(SystemState()).value
 
     state.usersUpdated shouldBe List(User(UserName("shouldBeUpdated"), Password("password")))
+    state.metricsSent.toSet shouldBe Set(UsersCreated(0), UsersUpdated(1), UsersRemoved(0), UsersFailed(0))
   }
 
   it should "not update or create user if password is correct" in {
@@ -64,12 +67,13 @@ class UserSyncSpec extends FlatSpec with Matchers {
       SsmParameter("/kafka-security/ci-cluster/user-passwords/shouldBeUpdated", "password")
     )
 
-    val userSync = new UserSync("ci-cluster", kafkaUsers, ssm, new LogAlgState())
+    val userSync = new UserSync("ci-cluster", kafkaUsers, ssm, new MetricsAlgState(), new LogAlgState())
 
     val (state, _) = userSync.sync.run(SystemState()).value
 
     state.usersUpdated shouldBe List()
     state.usersAdded shouldBe List()
+    state.metricsSent.toSet shouldBe Set(UsersCreated(0), UsersUpdated(0), UsersRemoved(0), UsersFailed(0))
   }
 
   "sync" should "log errors for failed users and continue with the parsed ones" in {
@@ -81,11 +85,12 @@ class UserSyncSpec extends FlatSpec with Matchers {
       SsmParameter("/kafka-security/ci-cluster/users/test-user-no-password", "")
     )
 
-    val userSync = new UserSync("ci-cluster", kafkaUsers, ssm, new LogAlgState())
+    val userSync = new UserSync("ci-cluster", kafkaUsers, ssm, new MetricsAlgState(), new LogAlgState())
 
     val (state, _) = userSync.sync.run(SystemState()).value
 
     state.usersAdded shouldBe List(User(UserName("test-user"), Password("password")))
     state.errors.length shouldBe 1
+    state.metricsSent.toSet shouldBe Set(UsersCreated(1), UsersUpdated(0), UsersRemoved(0), UsersFailed(1))
   }
 }
