@@ -12,7 +12,11 @@ On top of using a flat-file, it can leverage an external (auditable) source of t
 ### Usage
 Running the application is as simple as running the JAR file or running the container.  
 Take a look at `Configuration` section to configure the app.  
-Please note, that log group and log stream are created before running the app
+Please note, that log group and log stream are created before running the app.  
+By default running the application will dump the current Kafka configuration (topics, users and ACL) in a format ready to be copy-pasted into a CloudFormation file. This is to ease a migration for existing clusters.  
+Running it with `sync` parameter will actually perform the sync between values in Parameter Store and in Kafka Cluster.  
+There is a safety check built-in which will prevent a sync if there is no valid configuration in SSM Parameter Store.  It can be overriden with `sync --force` if you deliberately want ot wipe cluster config (unlikely).  
+The better strategy would be doing the CloudFormation dump first, removing the non-needed entries, populating entries in Parameter store using CloudFormation and then running the sync.
 
 ### Structure
 Since `kss` uses SSM parameters as the source-of-truth for the data, it does
@@ -65,6 +69,7 @@ will create a topic called `$topicname` with `ReplicationFactor=1, Partitions=10
 To create a topic with default retention policy use `-` instead of a number like `1,10,-`
 
 Deleting a topic from the parameter store will _not_ delete the topic data.
+Updating topic config in parameter store will not cause topic config to be updated (for now), but the app will notify you when they are not in sync with `topics_out_of_sync` metric and an error message in logs so you can adjust either side manually.
 
 #### Users
 User records in SSM come in two parts: the User data (with associated ACLs),
