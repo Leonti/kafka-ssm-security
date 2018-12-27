@@ -22,6 +22,7 @@ libraryDependencies ++= Seq(
   "org.typelevel" %% "cats-effect" % "1.0.0",
   "com.amazonaws" % "aws-java-sdk-ssm" % "1.11.461",
   "com.amazonaws" % "aws-java-sdk-cloudwatch" % "1.11.461",
+  "com.amazonaws" % "aws-java-sdk-logs" % "1.11.461",
   "org.apache.kafka" %% "kafka" % "2.0.0",
   "org.scalatest" %% "scalatest" % "3.0.4" % "it,test"
 )

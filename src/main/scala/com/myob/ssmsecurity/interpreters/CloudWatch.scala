@@ -7,9 +7,8 @@ import com.amazonaws.services.cloudwatch.model.{MetricDatum, PutMetricDataReques
 import com.myob.ssmsecurity.algebras.MetricsAlg
 import com.myob.ssmsecurity.models.Metric
 
-class CloudWatch(region: Regions) extends MetricsAlg[IO] {
+class CloudWatch(region: Regions, namespace: String) extends MetricsAlg[IO] {
   private val cw = AmazonCloudWatchClientBuilder.standard.withRegion(region).build()
-  private val NAMESPACE = "KSS"
 
   override def sendMetric(metric: Metric): IO[Unit] = IO {
     val datum = new MetricDatum()
@@ -17,8 +16,8 @@ class CloudWatch(region: Regions) extends MetricsAlg[IO] {
       .withUnit(StandardUnit.None)
       .withValue(metric.value.toDouble)
 
-    IO(cw.putMetricData(new PutMetricDataRequest()
-      .withNamespace(NAMESPACE)
-      .withMetricData(datum)))
+    cw.putMetricData(new PutMetricDataRequest()
+      .withNamespace(namespace)
+      .withMetricData(datum))
   }
 }

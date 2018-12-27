@@ -14,12 +14,16 @@ object Main extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] = {
 
-    val logger = new Logger()
-    val metrics = new CloudWatch(Regions.AP_SOUTHEAST_2)
-    val ssm = new SsmAws(Regions.AP_SOUTHEAST_2)
-
     val zkEndpoint = sys.env.getOrElse("ZK_ENDPOINT", "localhost:2181")
     val clusterName = sys.env.getOrElse("CLUSTER_NAME", "example-cluster")
+    val region = Regions.fromName(sys.env.getOrElse("REGION", "ap-southeast-2"))
+    val metricsNamespace = sys.env.getOrElse("METRICS_NAMESPACE", "KSS")
+    val logGroup = sys.env.getOrElse("LOG_GROUP", "kafka-ssm-security")
+    val logStream = sys.env.getOrElse("LOG_STREAM", "logs")
+
+    val logger = new AWSLogger(Regions.AP_SOUTHEAST_2, logGroup, logStream)
+    val metrics = new CloudWatch(region, metricsNamespace)
+    val ssm = new SsmAws(region)
 
     val aclSync = new AclSync[IO](clusterName, new KafkaAcls(zkEndpoint), ssm, metrics, logger)
 
