@@ -16,7 +16,7 @@ trait KafkaAclsAlg[F[_]] {
 
 trait KafkaTopicsAlg[F[_]] {
   def createTopic(topic: Topic): F[Unit]
-  def getTopicNames: F[Set[String]]
+  def getTopics: F[Set[Topic]]
 }
 
 trait KafkaUsersAlg[F[_]] {
@@ -29,4 +29,8 @@ trait KafkaUsersAlg[F[_]] {
 trait LogAlg[F[_]] {
   def info(message: String): F[Unit]
   def error(message: String): F[Unit]
+}
+
+trait MetricsAlg[F[_]] {
+  def sendMetric(metric: Metric): F[Unit]
 }
