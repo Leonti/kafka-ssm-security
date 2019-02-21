@@ -4,7 +4,7 @@ import java.util.UUID.randomUUID
 
 import com.myob.ssmsecurity.interpreters.KafkaTopics
 import com.myob.ssmsecurity.models.{PartitionCount, ReplicationFactor, RetentionHs, Topic}
-import kafka.zk.{AdminZkClient, KafkaZkClient}
+import kafka.zk.KafkaZkClient
 import org.apache.kafka.common.security.JaasUtils
 import org.apache.kafka.common.utils.Time
 import org.scalatest.{FlatSpec, Matchers}
@@ -17,15 +17,15 @@ class KafkaTopicsSpec extends FlatSpec with Matchers {
 
   it should "create a topic and read topic names" in {
 
-    val adminZkClient = new AdminZkClient(KafkaZkClient(zkEndpoint, JaasUtils.isZkSecurityEnabled, 30000, 30000,
-      Int.MaxValue, Time.SYSTEM))
+    val kafkaZkClient = KafkaZkClient(zkEndpoint, JaasUtils.isZkSecurityEnabled, 30000, 30000,
+      Int.MaxValue, Time.SYSTEM)
 
-    val kafkaTopics = new KafkaTopics(adminZkClient)
+    val kafkaTopics = new KafkaTopics(kafkaZkClient)
 
     val topicName = s"topic-${randomUUID().toString}"
-    kafkaTopics.createTopic(Topic(topicName, ReplicationFactor(1), PartitionCount(1), RetentionHs(1))).unsafeRunSync()
+    kafkaTopics.createTopic(Topic(topicName, ReplicationFactor(1), PartitionCount(1), Some(RetentionHs(1)))).unsafeRunSync()
 
-    val topicNames = kafkaTopics.getTopicNames.unsafeRunSync()
+    val topicNames = kafkaTopics.getTopics.map(_.map(_.name)).unsafeRunSync()
 
     topicNames should contain (topicName)
   }

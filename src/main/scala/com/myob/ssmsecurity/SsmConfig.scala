@@ -13,12 +13,19 @@ import scala.util.Try
 
 class SsmConfig[F[_]: Monad](clusterName: String, ssmAlg: SsmAlg[F]) {
 
-  private def parameterToTopic(p: SsmParameter): Either[Error, Topic] = Try(Topic(
-    p.name.split("/").last,
-    ReplicationFactor(p.value.split(",")(0).toInt),
-    PartitionCount(p.value.split(",")(1).toInt),
-    RetentionHs(p.value.split(",")(2).toInt)
-  )).toEither.leftMap(t => Error(s"Failed to parse topic `${p.name}` with value `${p.value}` ${t.getMessage}"))
+  private def parameterToTopic(p: SsmParameter): Either[Error, Topic] = Try {
+
+    val retentionHs = p.value.split(",")(2) match {
+      case "-" => None
+      case hours => Some(RetentionHs(hours.toLong))
+    }
+
+    Topic(p.name.split("/").last,
+      ReplicationFactor(p.value.split(",")(0).toInt),
+      PartitionCount(p.value.split(",")(1).toInt),
+      retentionHs
+    )
+  }.toEither.leftMap(t => Error(s"Failed to parse topic `${p.name}` with value `${p.value}` ${t.getMessage}"))
 
   private def lineToAcl(parameterName: String)(l: Array[String]): Either[Error, (Resource, Acl)] = Try {
     val resourceType = ResourceType.fromString(l(0))

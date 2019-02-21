@@ -10,7 +10,13 @@ Inspired by the idea behind [kafka-security-manager](https://github.com/simplest
 On top of using a flat-file, it can leverage an external (auditable) source of truth in AWS SSM Parameter Store.
 
 ### Usage
-Running the application is as simple as running the JAR file or running the container.
+Running the application is as simple as running the JAR file or running the container.  
+Take a look at `Configuration` section to configure the app.  
+Please note, that log group and log stream are created before running the app.  
+By default running the application will dump the current Kafka configuration (topics, users and ACL) in a format ready to be copy-pasted into a CloudFormation file. This is to ease a migration for existing clusters.  
+Running it with `sync` parameter will actually perform the sync between values in Parameter Store and in Kafka Cluster.  
+There is a safety check built-in which will prevent a sync if there is no valid configuration in SSM Parameter Store.  It can be overriden with `sync --force` if you deliberately want ot wipe cluster config (unlikely).  
+The better strategy would be doing the CloudFormation dump first, removing the non-needed entries, populating entries in Parameter store using CloudFormation and then running the sync.
 
 ### Structure
 Since `kss` uses SSM parameters as the source-of-truth for the data, it does
@@ -60,8 +66,10 @@ The format for the value of a Topic is: `ReplicationFactor,Partitions,RetentionH
 
 That is, a parameter of `/kafka-security/$cluster/topics/$topicname` with value `1,10,24`
 will create a topic called `$topicname` with `ReplicationFactor=1, Partitions=10, RetentionHours=24`.
+To create a topic with default retention policy use `-` instead of a number like `1,10,-`
 
 Deleting a topic from the parameter store will _not_ delete the topic data.
+Updating topic config in parameter store will not cause topic config to be updated (for now), but the app will notify you when they are not in sync with `topics_out_of_sync` metric and an error message in logs so you can adjust either side manually.
 
 #### Users
 User records in SSM come in two parts: the User data (with associated ACLs),
@@ -108,15 +116,37 @@ The value of this parameter should be a `SecureString` parameter of the plaintex
 store the password in an encrypted fashion, but Kafka needs to have access to the plaintext data to
 be able to actually create the correct password using the `SCRAM-SHA-256` mechanism.
 
+### Metrics and logs
+The app is designed so you don't ordinarely need to ssh into your cluster.  
+To allow that all important information is sent to CloudWatch metrics and Logs.  
+This allows to create alerts on metrics like `users_failed`, `acls_failed`, etc. so you'll know when your configuration has errors.  
+If you would like to monitor any changes, you can also monitor metrics like `users_created`, `users_updated`, `acls_created`, etc.  
+All configuration errors are also logged, so when you notice that `users_failed` metrics is not `0`, you can find corresponding entries in logs like:  
+```
+ERROR: Could not find password for a user another-test-user
+```  
+To keep the app simple and not give it more permissions than necessary log group and log stream need to be created before running the app. 
 
 ### Configuration
-You can configure two parameters for the actual engine of `kss` with environment variables
+You can configure parameters for the actual engine of `kss` with environment variables
 - `ZK_ENDPOINT`
   - The Zookeeper connection string.
   - Defaults to `localhost:2181`
 - `CLUSTER_NAME`
   - The name of the cluster that `kss` should manage, for finding the correct parameters in SSM.
   - Defaults to `example-cluster`
+- `REGION`
+  - Aws region name
+  - Defaults to `ap-southeast-2`
+- `METRICS_NAMESPACE`
+  - Namespace for CloudWatch metrics
+  - Defaults to `KSS`
+- `LOG_GROUP`
+  - Log group name, has to be created beforehand
+  - Defaults to `kafka-ssm-security`
+- `LOG_STREAM`
+  - Log stream name, has to be created beforehand
+  - defaults to `logs`
 
 ### Building
 Build the container with:

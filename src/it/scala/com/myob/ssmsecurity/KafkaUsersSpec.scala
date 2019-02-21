@@ -29,7 +29,6 @@ class KafkaUsersSpec extends FlatSpec with Matchers {
     val usernamesAfterCreation = storedUsersAfterCreation.map(_.name)
     usernamesAfterCreation should contain(userName)
 
-
     kafkaUsers.removeUser(userName).unsafeRunSync()
 
     val storedUsersAfterRemoval = kafkaUsers.getStoredUsers.unsafeRunSync()
